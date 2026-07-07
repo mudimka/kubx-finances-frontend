@@ -128,11 +128,24 @@ function Debts({ data }) {
   );
 }
 
-function ReconciliationActs({ data }) {
+function ReconciliationActs() {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
+  const [order, setOrder] = useState('DESC');
   const limit = 5;
 
-  if (!data) return <p>Загрузка...</p>;
+  useEffect(() => {
+    setLoading(true);
+    fetch(`${API_BASE}/ReconciliationActs/get/?page=${page}&limit=${limit}&order=${order}`, {
+      credentials: 'include'
+    })
+      .then(r => r.json())
+      .then(json => { setData(json.result); setLoading(false); });
+  }, [page, order]);
+
+  if (loading) return <p>Загрузка...</p>;
+  if (!data) return <p>Нет данных</p>;
 
   const items = data.items || [];
   const total = data.count || 0;
@@ -140,6 +153,12 @@ function ReconciliationActs({ data }) {
 
   return (
     <div className="block">
+      <div className="toolbar">
+        <select value={order} onChange={e => { setOrder(e.target.value); setPage(1); }}>
+          <option value="DESC">Сначала новые</option>
+          <option value="ASC">Сначала старые</option>
+        </select>
+      </div>
       <div className="table-wrap">
         <table className="table">
           <thead>
@@ -187,16 +206,12 @@ export default function App() {
   const [tab, setTab] = useState(0);
   const [user, setUser] = useState(null);
   const [financesData, setFinancesData] = useState(null);
-  const [actsData, setActsData] = useState(null);
 
   useEffect(() => {
     if (!user) return;
     fetch(`${API_BASE}/Finances/get/`, { credentials: 'include' })
       .then(r => r.json())
       .then(json => setFinancesData(json.result));
-    fetch(`${API_BASE}/ReconciliationActs/get/?page=1&limit=5`, { credentials: 'include' })
-      .then(r => r.json())
-      .then(json => setActsData(json.result));
   }, [user]);
 
   if (!user) return <Login onLogin={setUser} />;
@@ -216,7 +231,7 @@ export default function App() {
       </div>
       {tab === 0 && <Finances data={financesData} />}
       {tab === 1 && <Debts data={financesData} />}
-      {tab === 2 && <ReconciliationActs data={actsData} />}
+      {tab === 2 && <ReconciliationActs />}
     </div>
   );
 }
